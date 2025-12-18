@@ -14,31 +14,35 @@
             padding: 0;
             width: 100%;
             height: 100%;
-            overflow: hidden;
-            background: #000000; /* ������ ��� �� ������, ���� ���� �� ���������� */
-            touch-action: none;
-            -webkit-tap-highlight-color: transparent;
+            overflow: hidden; /* ������� ������ ��������� */
+            background: #231F20; /* ���� ���� ���� �������� (������/�����) */
+            display: flex; /* �������� flexbox ��� body */
+            justify-content: center; /* ���������� ���������� �� ����������� */
+            align-items: center; /* ���������� ���������� �� ��������� */
         }
         #unity-container {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            /* ������� ���������� ����������������, ������ ��������� - flex-������� */
+            position: relative;
+            /* ��� ������ ���������� (����� �������� ������ ��� ������) */
             background: #000000;
+            /* ������������ ������������ ������ ������������ 9:16 ������������ ������ ���� */
+            max-width: calc(100vh * (9 / 16));
+            /* � ������ - 100% �� ���� */
+            height: 100vh;
+            width: 100%; /* �������� ��� ��������� ������ � �������� max-width */
         }
         #unity-canvas {
             background: #000000;
+            /* Canvas ������������� �� 100% �� �������� ������������� ���������� */
             width: 100%;
             height: 100%;
+            display: block;
         }
-        /* ��� ��������� ��� ������� ������� - ���������� �� ��������� */
-        @media (min-aspect-ratio: 9/16) {
-            #unity-canvas {
-                width: 100%;
-                height: auto;
-                max-height: 100vh;
+        /* ��� ����� ������� (�����) ����, ��� 100vh * 9/16 ������ 100vw */
+        @media (max-aspect-ratio: 9/16) {
+            #unity-container {
+                max-width: 100vw; /* ������ ���������� - �� �� ���� */
+                height: calc(100vw * (16 / 9)); /* ������ ����������� ��������������� */
             }
         }
     </style>
