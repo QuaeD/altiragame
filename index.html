@@ -92,225 +92,245 @@
     <!-- Unity Loader -->
     <script src="Build/WebGL_Build.loader.js"></script>
     
-    <script>
-        // ========== CONFIG ==========
-        var buildUrl = "Build";
-        var config = {
-            dataUrl: buildUrl + "/WebGL_Build.data",
-            frameworkUrl: buildUrl + "/WebGL_Build.framework.js",
-            codeUrl: buildUrl + "/WebGL_Build.wasm",
-            streamingAssetsUrl: "StreamingAssets",
-            companyName: "PheoniX Tech",
-            productName: "Altiragame",
-            productVersion: "0.0.0.0",
-            showBanner: unityShowBanner,
-            matchWebGLToCanvasSize: false
-        };
-        
-        // ========== GLOBALS ==========
-        var unityInstance = null;
-        var debugActive = false;
-        var currentScale = 1.0;
-        var minWidth = 500; // Minimum width for readability
-        
-        // ========== DEBUG ==========
-        function toggleDebug() {
-            debugActive = !debugActive;
-            var panel = document.getElementById('debug-panel');
-            panel.classList.toggle('active', debugActive);
-            if (debugActive) updateDebug();
-        }
-        
-        function updateDebug() {
-            if (!debugActive) return;
-            
-            var container = document.getElementById('unity-container');
-            var canvas = document.getElementById('unity-canvas');
-            var content = document.getElementById('debug-content');
-            
-            content.innerHTML = 
-                'Container: ' + container.clientWidth + ' ? ' + container.clientHeight + '<br>' +
-                'Canvas: ' + canvas.clientWidth + ' ? ' + canvas.clientHeight + '<br>' +
-                'Window: ' + window.innerWidth + ' ? ' + window.innerHeight + '<br>' +
-                'Scale: ?' + currentScale.toFixed(2) + '<br>' +
-                'Aspect: ' + (container.clientWidth/container.clientHeight).toFixed(3) + '<br>' +
-                'DPR: ' + (window.devicePixelRatio || 1) + '<br>' +
-                'Telegram: ' + (window.isTelegram ? 'Yes' : 'No');
-        }
-        
-        // ========== SCALING FOR TELEGRAM ==========
-        function applyScaling() {
-            if (!window.isTelegram) return false;
-            
-            var container = document.getElementById('unity-container');
-            var containerWidth = container.clientWidth;
-            
-            // If Telegram gives us less than minWidth, scale up
-            if (containerWidth < minWidth) {
-                currentScale = minWidth / containerWidth;
-                
-                // Limit scaling
-                if (currentScale > 1.8) currentScale = 1.8;
-                if (currentScale < 1.1) currentScale = 1.1;
-                
-                // Apply scale
-                container.style.transform = 'scale(' + currentScale + ')';
-                container.style.transformOrigin = 'center center';
-                
-                // Center the scaled content
-                var scaledWidth = containerWidth * currentScale;
-                var widthDiff = (scaledWidth - containerWidth) / 2;
-                container.style.marginLeft = '-' + widthDiff + 'px';
-                
-                console.log('Telegram scaling applied: ' + currentScale.toFixed(2) + 'x');
-                return true;
-            }
-            
-            // Reset if no scaling needed
-            if (currentScale !== 1.0) {
-                currentScale = 1.0;
-                container.style.transform = 'none';
-                container.style.marginLeft = '0';
-            }
-            return false;
-        }
-        
-        // ========== UPDATE CANVAS SIZE ==========
-        function updateCanvasSize() {
-            var canvas = document.getElementById('unity-canvas');
-            var container = document.getElementById('unity-container');
-            
-            // Apply Telegram scaling first
-            var isScaled = applyScaling();
-            
-            // Get actual container dimensions
-            var containerWidth = container.clientWidth;
-            var containerHeight = container.clientHeight;
-            var targetRatio = 9 / 16;
-            
-            var newWidth, newHeight;
-            
-            if (isScaled) {
-                // Use scaled dimensions
-                newWidth = containerWidth * currentScale;
-                newHeight = newWidth / targetRatio;
-            } else {
-                // Standard aspect ratio calculation
-                var currentRatio = containerWidth / containerHeight;
-                
-                if (currentRatio > targetRatio) {
-                    newHeight = containerHeight;
-                    newWidth = containerHeight * targetRatio;
-                } else {
-                    newWidth = containerWidth;
-                    newHeight = containerWidth / targetRatio;
-                }
-            }
-            
-            // Set canvas dimensions
-            canvas.style.width = newWidth + 'px';
-            canvas.style.height = newHeight + 'px';
-            
-            // Update WebGL internal size
-            var dpr = window.devicePixelRatio || 1;
-            canvas.width = Math.floor(newWidth * dpr);
-            canvas.height = Math.floor(newHeight * dpr);
-            
-            // Update debug info
-            updateDebug();
-        }
-        
-        // ========== BANNER FUNCTION ==========
-        function unityShowBanner(msg, type) {
-            var banner = document.getElementById('unity-warning');
-            if (!banner) return;
-            
-            function updateBanner() {
-                banner.style.display = banner.children.length ? 'block' : 'none';
-            }
-            
-            var div = document.createElement('div');
-            div.innerHTML = msg;
-            banner.appendChild(div);
-            
-            if (type === 'error') {
-                div.style.cssText = 'background: #d32f2f; color: white; padding: 10px; margin: 5px; border-radius: 4px;';
-            } else {
-                div.style.cssText = 'background: #ffa000; color: black; padding: 10px; margin: 5px; border-radius: 4px;';
-                setTimeout(function() {
-                    if (div.parentNode === banner) {
-                        banner.removeChild(div);
-                        updateBanner();
-                    }
-                }, 5000);
-            }
-            
-            updateBanner();
-        }
-        
-        // ========== INITIALIZATION ==========
-        document.addEventListener('DOMContentLoaded', function() {
-            var canvas = document.getElementById('unity-canvas');
-            var container = document.getElementById('unity-container');
-            
-            // Detect mobile
-            var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-            
-            if (isMobile) {
-                container.className = 'unity-mobile';
-                canvas.className = 'unity-mobile';
-            }
-            
-            // Debug hotkey (Ctrl+D)
-            document.addEventListener('keydown', function(e) {
-                if (e.ctrlKey && e.key === 'd') {
-                    toggleDebug();
-                    e.preventDefault();
-                }
-            });
-            
-            // Show loading screen
-            document.getElementById('unity-loading-bar').style.display = 'block';
-            
-            // Load Unity
-            if (typeof createUnityInstance !== 'undefined') {
-                createUnityInstance(canvas, config, function(progress) {
-                    var bar = document.getElementById('unity-progress-bar-full');
-                    if (bar) bar.style.width = (100 * progress) + '%';
-                }).then(function(instance) {
-                    unityInstance = instance;
-                    
-                    // Hide loading
-                    document.getElementById('unity-loading-bar').style.display = 'none';
-                    
-                    // Set initial size
-                    updateCanvasSize();
-                    
-                    // Special handling for Telegram
-                    if (window.isTelegram) {
-                        setTimeout(function() {
-                            updateCanvasSize();
-                            setTimeout(updateCanvasSize, 300);
-                        }, 200);
-                    }
-                    
-                    // Handle resize
-                    var resizeTimer;
-                    window.addEventListener('resize', function() {
-                        clearTimeout(resizeTimer);
-                        resizeTimer = setTimeout(updateCanvasSize, 100);
-                    });
-                    
-                }).catch(function(error) {
-                    console.error('Unity load error:', error);
-                    unityShowBanner('Load error: ' + error, 'error');
-                    document.getElementById('unity-loading-bar').style.display = 'none';
-                });
-            } else {
-                unityShowBanner('Unity loader not found', 'error');
-                document.getElementById('unity-loading-bar').style.display = 'none';
-            }
-        });
-    </script>
+        <script>
+			// ========== CONFIG ==========
+			var buildUrl = "Build";
+			var config = {
+				dataUrl: buildUrl + "/WebGL_Build.data",
+				frameworkUrl: buildUrl + "/WebGL_Build.framework.js",
+				codeUrl: buildUrl + "/WebGL_Build.wasm",
+				streamingAssetsUrl: "StreamingAssets",
+				companyName: "PheoniX Tech",
+				productName: "Altiragame",
+				productVersion: "0.0.0.0",
+				showBanner: unityShowBanner,
+				matchWebGLToCanvasSize: false
+			};
+			
+			// ========== GLOBALS ==========
+			var unityInstance = null;
+			var debugActive = false;
+			var currentScale = 1.0;
+			var minWidth = 500; // Minimum width for readability
+			
+			// ========== DEBUG ==========
+			function toggleDebug() {
+				debugActive = !debugActive;
+				var panel = document.getElementById('debug-panel');
+				panel.classList.toggle('active', debugActive);
+				if (debugActive) updateDebug();
+			}
+			
+			function updateDebug() {
+				if (!debugActive) return;
+				
+				var container = document.getElementById('unity-container');
+				var canvas = document.getElementById('unity-canvas');
+				var content = document.getElementById('debug-content');
+				
+				// ��� ������������ ������ - ������ ������� ? ������� ������������ � ?
+				content.innerHTML = 
+					'Container: ' + container.clientWidth + ' x ' + container.clientHeight + '<br>' +
+					'Canvas: ' + canvas.clientWidth + ' x ' + canvas.clientHeight + '<br>' +
+					'Window: ' + window.innerWidth + ' x ' + window.innerHeight + '<br>' +
+					'Scale: x' + currentScale.toFixed(2) + '<br>' +  // x ������ ?
+					'Aspect: ' + (container.clientWidth/container.clientHeight).toFixed(3) + '<br>' +
+					'DPR: ' + (window.devicePixelRatio || 1) + '<br>' +
+					'Telegram: ' + (window.isTelegram ? 'Yes' : 'No');
+			}
+			
+			// ========== SCALING FOR TELEGRAM ==========
+			function applyScaling() {
+				if (!window.isTelegram) return false;
+				
+				var container = document.getElementById('unity-container');
+				var containerWidth = container.clientWidth;
+				
+				// If Telegram gives us less than minWidth, scale up
+				if (containerWidth < minWidth) {
+					currentScale = minWidth / containerWidth;
+					
+					// Limit scaling
+					if (currentScale > 1.8) currentScale = 1.8;
+					if (currentScale < 1.1) currentScale = 1.1;
+					
+					// Apply scale
+					container.style.transform = 'scale(' + currentScale + ')';
+					container.style.transformOrigin = 'center center';
+					
+					// Center the scaled content
+					var scaledWidth = containerWidth * currentScale;
+					var widthDiff = (scaledWidth - containerWidth) / 2;
+					container.style.marginLeft = '-' + widthDiff + 'px';
+					
+					console.log('Telegram scaling applied: ' + currentScale.toFixed(2) + 'x');
+					return true;
+				}
+				
+				// Reset if no scaling needed
+				if (currentScale !== 1.0) {
+					currentScale = 1.0;
+					container.style.transform = 'none';
+					container.style.marginLeft = '0';
+				}
+				return false;
+			}
+			
+			// ========== UPDATE CANVAS SIZE ==========
+			function updateCanvasSize() {
+				var canvas = document.getElementById('unity-canvas');
+				var container = document.getElementById('unity-container');
+				
+				// Apply Telegram scaling first
+				var isScaled = applyScaling();
+				
+				// Get actual container dimensions
+				var containerWidth = container.clientWidth;
+				var containerHeight = container.clientHeight;
+				var targetRatio = 9 / 16;
+				
+				var newWidth, newHeight;
+				
+				if (isScaled) {
+					// Use scaled dimensions
+					newWidth = containerWidth * currentScale;
+					newHeight = newWidth / targetRatio;
+				} else {
+					// Standard aspect ratio calculation
+					var currentRatio = containerWidth / containerHeight;
+					
+					if (currentRatio > targetRatio) {
+						newHeight = containerHeight;
+						newWidth = containerHeight * targetRatio;
+					} else {
+						newWidth = containerWidth;
+						newHeight = containerWidth / targetRatio;
+					}
+				}
+				
+				// Set canvas dimensions
+				canvas.style.width = newWidth + 'px';
+				canvas.style.height = newHeight + 'px';
+				
+				// Update WebGL internal size
+				var dpr = window.devicePixelRatio || 1;
+				canvas.width = Math.floor(newWidth * dpr);
+				canvas.height = Math.floor(newHeight * dpr);
+				
+				// Update debug info
+				updateDebug();
+			}
+			
+			// ========== BANNER FUNCTION ==========
+			function unityShowBanner(msg, type) {
+				var banner = document.getElementById('unity-warning');
+				if (!banner) return;
+				
+				function updateBanner() {
+					banner.style.display = banner.children.length ? 'block' : 'none';
+				}
+				
+				var div = document.createElement('div');
+				div.innerHTML = msg;
+				banner.appendChild(div);
+				
+				if (type === 'error') {
+					div.style.cssText = 'background: #d32f2f; color: white; padding: 10px; margin: 5px; border-radius: 4px;';
+				} else {
+					div.style.cssText = 'background: #ffa000; color: black; padding: 10px; margin: 5px; border-radius: 4px;';
+					setTimeout(function() {
+						if (div.parentNode === banner) {
+							banner.removeChild(div);
+							updateBanner();
+						}
+					}, 5000);
+				}
+				
+				updateBanner();
+			}
+			
+			// ========== INITIALIZATION ==========
+			document.addEventListener('DOMContentLoaded', function() {
+				var canvas = document.getElementById('unity-canvas');
+				var container = document.getElementById('unity-container');
+				
+				// Detect mobile
+				var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+				
+				if (isMobile) {
+					container.className = 'unity-mobile';
+					canvas.className = 'unity-mobile';
+				}
+				
+				// ��������������� ������� ������� �������
+				document.addEventListener('keydown', function(e) {
+					// Ctrl+Shift+D - ��� ���� ������
+					if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+						toggleDebug();
+						e.preventDefault();
+					}
+					// ��� ������ Ctrl+D - �� ������ ������
+					if (e.ctrlKey && !e.shiftKey && e.key === 'd') {
+						toggleDebug();
+						e.preventDefault();
+					}
+				});
+				
+				// �������������� ��������� ������ ��� TELEGRAM
+				if (window.isTelegram) {
+					// �������� ������������� � Telegram
+					setTimeout(function() {
+						debugActive = true;
+						document.getElementById('debug-panel').classList.add('active');
+						updateDebug();
+						
+						// ��������� ������������
+						setInterval(updateDebug, 1000);
+					}, 1000);
+				}
+				
+				// Show loading screen
+				document.getElementById('unity-loading-bar').style.display = 'block';
+				
+				// Load Unity
+				if (typeof createUnityInstance !== 'undefined') {
+					createUnityInstance(canvas, config, function(progress) {
+						var bar = document.getElementById('unity-progress-bar-full');
+						if (bar) bar.style.width = (100 * progress) + '%';
+					}).then(function(instance) {
+						unityInstance = instance;
+						
+						// Hide loading
+						document.getElementById('unity-loading-bar').style.display = 'none';
+						
+						// Set initial size
+						updateCanvasSize();
+						
+						// Special handling for Telegram
+						if (window.isTelegram) {
+							setTimeout(function() {
+								updateCanvasSize();
+								setTimeout(updateCanvasSize, 300);
+							}, 200);
+						}
+						
+						// Handle resize
+						var resizeTimer;
+						window.addEventListener('resize', function() {
+							clearTimeout(resizeTimer);
+							resizeTimer = setTimeout(updateCanvasSize, 100);
+						});
+						
+					}).catch(function(error) {
+						console.error('Unity load error:', error);
+						unityShowBanner('Load error: ' + error, 'error');
+						document.getElementById('unity-loading-bar').style.display = 'none';
+					});
+				} else {
+					unityShowBanner('Unity loader not found', 'error');
+					document.getElementById('unity-loading-bar').style.display = 'none';
+				}
+			});
+		</script>
 </body>
 </html>
