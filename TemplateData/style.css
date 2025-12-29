@@ -1,151 +1,294 @@
-/* �������� ����� */
-body { 
-    padding: 0; 
+/* ================= �������� ����� ================= */
+body {
     margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
     background: #000000;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overscroll-behavior: none;
 }
 
-/* ��������� */
-#unity-container { 
+/* ================= ��������� ================= */
+#unity-container {
     position: absolute;
-    overflow: hidden;
+    overflow: visible !important; /* ����� ��� ��������������� � Telegram */
+}
+
+/* ���������� ������ */
+#unity-container.unity-desktop {
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 /* ��������� ������ */
-#unity-container.unity-mobile { 
-    position: fixed; 
-    width: 100%; 
-    height: 100%;
-    left: 0;
-    top: 0;
+#unity-container.unity-mobile {
+    position: fixed !important;
+    width: 100% !important;
+    height: 100% !important;
+    left: 0 !important;
+    top: 0 !important;
+    transform: none !important;
+    margin: 0 !important;
 }
 
-/* Canvas */
-#unity-canvas { 
+/* ================= CANVAS ================= */
+#unity-canvas {
     background: #000000;
     display: block;
     image-rendering: -webkit-optimize-contrast;
     image-rendering: crisp-edges;
+    image-rendering: pixelated;
 }
 
 /* ��������� canvas */
-.unity-mobile #unity-canvas { 
-    width: 100%; 
-    height: 100%;
+.unity-mobile #unity-canvas {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
 }
 
-/* ����� �������� */
-#unity-loading-bar { 
-    position: absolute; 
-    left: 50%; 
-    top: 50%; 
-    transform: translate(-50%, -50%); 
+/* ���������� canvas (�������� ��� Telegram) */
+#unity-container.unity-desktop #unity-canvas {
+    max-height: 100vh;
+    max-width: 100vw;
+}
+
+/* ================= ����� �������� ================= */
+#unity-loading-bar {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
     display: none;
-    z-index: 10;
-    background: rgba(0, 0, 0, 0.8);
-    padding: 20px;
-    border-radius: 10px;
+    z-index: 100;
+    background: rgba(20, 20, 20, 0.9);
+    padding: 25px 30px;
+    border-radius: 12px;
     text-align: center;
-    min-width: 200px;
+    min-width: 250px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-#unity-logo { 
-    width: 154px; 
-    height: 130px; 
+#unity-logo {
+    width: 140px;
+    height: 120px;
     background: url('unity-logo-dark.png') no-repeat center;
     background-size: contain;
     margin: 0 auto 20px auto;
+    opacity: 0.9;
 }
 
-#unity-progress-bar-empty { 
-    width: 141px; 
-    height: 18px; 
+#unity-progress-bar-empty {
+    width: 200px;
+    height: 22px;
     background: url('progress-bar-empty-dark.png') no-repeat center;
     background-size: contain;
-    margin: 10px auto;
+    margin: 15px auto;
     position: relative;
+    border-radius: 11px;
+    overflow: hidden;
+    background-color: rgba(255, 255, 255, 0.1);
 }
 
-#unity-progress-bar-full { 
-    width: 0%; 
-    height: 100%; 
+#unity-progress-bar-full {
+    width: 0%;
+    height: 100%;
     position: absolute;
     left: 0;
     top: 0;
     background: url('progress-bar-full-dark.png') no-repeat left center;
     background-size: cover;
-    transition: width 0.3s ease-out;
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 11px;
 }
 
-/* ������ ������ */
-#unity-warning { 
-    position: absolute; 
-    left: 50%; 
-    top: 20px; 
-    transform: translateX(-50%); 
-    background: rgba(255, 255, 255, 0.95);
-    padding: 12px 20px;
+/* ================= ������ ������ ================= */
+#unity-warning {
+    position: absolute;
+    left: 50%;
+    top: 20px;
+    transform: translateX(-50%);
+    background: rgba(255, 255, 255, 0.97);
+    padding: 15px 25px;
     display: none;
-    z-index: 100;
-    border-radius: 8px;
-    max-width: 90%;
+    z-index: 1000;
+    border-radius: 10px;
+    max-width: 85%;
+    min-width: 300px;
     text-align: center;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-    border: 1px solid #ddd;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+    border: 1px solid #e0e0e0;
     font-size: 14px;
-    line-height: 1.4;
+    line-height: 1.5;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
 }
 
-/* ����� (����� �� ���������) */
-#unity-footer { 
+/* ================= ����� ================= */
+/* ��������� �������� ����� */
+#unity-footer {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+/* ��������� ������� �� ������ ������ */
+#unity-logo-title-footer,
+#unity-build-title,
+#unity-fullscreen-button {
     display: none !important;
 }
 
-/* ���������� ������������ */
-@media (max-width: 768px) {
+/* ================= ������������ ================= */
+/* �������� � ��������� �������� */
+@media (max-width: 1024px) {
     #unity-loading-bar {
-        padding: 15px;
-        min-width: 180px;
+        padding: 20px;
+        min-width: 220px;
     }
     
     #unity-logo {
         width: 120px;
         height: 100px;
     }
-}
-
-@media (orientation: landscape) and (max-height: 600px) {
-    #unity-loading-bar {
-        top: 40%;
-        transform: translate(-50%, -40%);
-    }
-}
-
-/* ��������� ����� ���� */
-@media (prefers-color-scheme: dark) {
-    #unity-warning {
-        background: rgba(40, 40, 40, 0.95);
-        color: #fff;
-        border-color: #444;
-    }
-}
-
-/* ��������� ��� ��������� ��������� */
-@media (hover: none) and (pointer: coarse) {
-    #unity-canvas {
-        -webkit-tap-highlight-color: transparent;
+    
+    #unity-progress-bar-empty {
+        width: 180px;
+        height: 20px;
     }
 }
 
 /* �������� */
+@media (max-width: 768px) {
+    #unity-loading-bar {
+        padding: 15px;
+        min-width: 200px;
+        background: rgba(10, 10, 10, 0.95);
+    }
+    
+    #unity-logo {
+        width: 100px;
+        height: 85px;
+        margin-bottom: 15px;
+    }
+    
+    #unity-progress-bar-empty {
+        width: 160px;
+        height: 18px;
+    }
+    
+    #unity-warning {
+        min-width: 250px;
+        font-size: 13px;
+        padding: 12px 20px;
+    }
+}
+
+/* ����������� ���������� �� ��������� */
+@media (orientation: landscape) and (max-height: 600px) {
+    #unity-loading-bar {
+        top: 45%;
+        padding: 15px 20px;
+    }
+    
+    #unity-logo {
+        width: 80px;
+        height: 70px;
+        margin-bottom: 10px;
+    }
+}
+
+/* ����� ��������� ������ */
+@media (max-height: 500px) {
+    #unity-loading-bar {
+        transform: translate(-50%, -50%) scale(0.9);
+    }
+}
+
+/* ================= ������ ���� ================= */
+@media (prefers-color-scheme: dark) {
+    #unity-warning {
+        background: rgba(40, 40, 40, 0.97);
+        color: #ffffff;
+        border-color: #444;
+    }
+    
+    #unity-loading-bar {
+        background: rgba(15, 15, 15, 0.95);
+        border-color: rgba(255, 255, 255, 0.05);
+    }
+}
+
+/* ================= ��������� ��� ��������� ��������� ================= */
+@media (hover: none) and (pointer: coarse) {
+    #unity-canvas {
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+    }
+    
+    #unity-loading-bar {
+        touch-action: none;
+    }
+}
+
+/* ================= �������� ================= */
 @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from { opacity: 0; transform: translate(-50%, -50%) scale(0.95); }
+    to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 }
 
 #unity-loading-bar {
-    animation: fadeIn 0.3s ease;
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes pulse {
+    0% { opacity: 0.8; }
+    50% { opacity: 1; }
+    100% { opacity: 0.8; }
+}
+
+#unity-progress-bar-full:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, 
+        transparent 0%, 
+        rgba(255, 255, 255, 0.2) 50%, 
+        transparent 100%);
+    animation: pulse 2s infinite;
+}
+
+/* ================= ������� ================= */
+.no-scroll {
+    overflow: hidden !important;
+}
+
+.no-select {
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+}
+
+/* ����������� ����� ��� Telegram */
+body.telegram-webapp #unity-container.unity-desktop {
+    min-width: 500px !important;
+}
+
+body.telegram-webapp #unity-canvas {
+    image-rendering: optimizeQuality !important;
 }

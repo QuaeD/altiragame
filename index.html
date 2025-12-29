@@ -14,72 +14,99 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background: #000;
+            background: #000000;
             display: flex;
             justify-content: center;
             align-items: center;
+            touch-action: none;
         }
         
         #unity-container {
             position: relative;
-            background: #000;
+            background: #000000;
             width: 100%;
             height: 100%;
             display: flex;
             justify-content: center;
             align-items: center;
-            transition: transform 0.3s ease;
+            transition: transform 0.2s ease-out;
         }
         
         #unity-canvas {
-            background: #000;
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
+            background: #000000;
             display: block;
         }
         
-        .unity-mobile #unity-canvas {
-            width: 100vw;
-            height: 100vh;
-            object-fit: cover;
-        }
-        
         /* ��������������� ������ */
-        #telegram-debug {
+        #unity-debug {
             position: fixed;
             top: 10px;
             left: 10px;
-            background: rgba(0, 0, 0, 0.8);
-            color: #0f0;
-            padding: 10px;
-            font-size: 12px;
-            font-family: monospace;
-            z-index: 9999;
-            border-radius: 5px;
+            background: rgba(0, 0, 0, 0.85);
+            color: #4CAF50;
+            padding: 12px 15px;
+            font-size: 13px;
+            font-family: 'Courier New', monospace;
+            z-index: 10000;
+            border-radius: 6px;
+            border: 1px solid #333;
             display: none;
+            line-height: 1.5;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            max-width: 300px;
+            word-break: break-all;
+        }
+        
+        #unity-debug strong {
+            color: #FF9800;
+        }
+        
+        /* ������ �� ��������� */
+        .unity-mobile #unity-debug {
+            display: none !important;
         }
     </style>
 </head>
 <body>
-    <!-- ��������������� ������ (Ctrl+D ��� ������/�������) -->
-    <div id="telegram-debug"></div>
+    <!-- ��������������� ������ -->
+    <div id="unity-debug">
+        <div><strong>�������� �����</strong></div>
+        <div id="debug-info">��������...</div>
+    </div>
     
+    <!-- ������������� Telegram WebApp -->
     <script>
-        // ���������, ��� �� ������ Telegram WebApp
-        if (window.Telegram && Telegram.WebApp) {
-            const tg = Telegram.WebApp;
-            tg.expand();
-            tg.setViewportHeight(0.95);
-            tg.disableVerticalSwipes = true;
-            console.log('Telegram WebApp initialized');
-            
-            // ��������� ������ ��� �����������
-            window.TelegramWebApp = tg;
-        }
+        (function() {
+            // ���������, ��� �� ������ Telegram WebApp
+            if (window.Telegram && Telegram.WebApp) {
+                try {
+                    const tg = Telegram.WebApp;
+                    
+                    // ��������� ��������� ��� �����������
+                    window.telegramApp = tg;
+                    
+                    // ��������� ����
+                    tg.expand();
+                    
+                    // ������� ������ ������ ���������� ����
+                    setTimeout(() => {
+                        tg.setViewportHeight(1.0); // 100% ������
+                        tg.enableClosingConfirmation(); // ��������� ��������� ��������
+                    }, 100);
+                    
+                    console.log('Telegram WebApp ���������������');
+                    
+                    // ��������� ����� ��� Telegram
+                    document.body.classList.add('telegram-webapp');
+                    
+                } catch(e) {
+                    console.error('������ Telegram WebApp:', e);
+                }
+            }
+        })();
     </script>
     
-    <!-- ��������� ��� ���� -->
+    <!-- ��������� ���� -->
     <div id="unity-container" class="unity-desktop">
         <canvas id="unity-canvas" width=1080 height=1920 tabindex="-1"></canvas>
         <div id="unity-loading-bar">
@@ -90,12 +117,12 @@
         </div>
         <div id="unity-warning"></div>
     </div>
-
-    <!-- ���������� ������ ���������� -->
+    
+    <!-- ��������� Unity -->
     <script src="Build/WebGL_Build.loader.js"></script>
-
+    
     <script>
-        // ������������ Unity
+        // ================= ������������ UNITY =================
         var buildUrl = "Build";
         var config = {
             dataUrl: buildUrl + "/WebGL_Build.data",
@@ -108,222 +135,253 @@
             showBanner: unityShowBanner,
             matchWebGLToCanvasSize: false
         };
-
-        // ���������� ����������
+        
+        // ================= ���������� ���������� =================
         var unityInstance = null;
-        var debugEnabled = false;
+        var debugMode = false;
         var currentScale = 1.0;
-
-        // ������� ��� ������ ���������
-        function unityShowBanner(msg, type) {
-            var warningBanner = document.querySelector("#unity-warning");
-            function updateBannerVisibility() {
-                warningBanner.style.display = warningBanner.children.length ? 'block' : 'none';
-            }
-            var div = document.createElement('div');
-            div.innerHTML = msg;
-            warningBanner.appendChild(div);
-            if (type == 'error') {
-                div.style = 'background: red; padding: 10px;';
-            } else {
-                if (type == 'warning') div.style = 'background: yellow; padding: 10px;';
-                setTimeout(function() {
-                    warningBanner.removeChild(div);
-                    updateBannerVisibility();
-                }, 5000);
-            }
-            updateBannerVisibility();
+        var isTelegram = !!window.telegramApp;
+        var minGameWidth = 500; // ����������� ������ ��� ����������
+        
+        // ================= ����������� =================
+        function toggleDebug() {
+            debugMode = !debugMode;
+            var debugPanel = document.getElementById('unity-debug');
+            debugPanel.style.display = debugMode ? 'block' : 'none';
+            if (debugMode) updateDebugInfo();
         }
-
-        // ������� �����������
+        
         function updateDebugInfo() {
-            if (!debugEnabled) return;
+            if (!debugMode) return;
             
-            var container = document.querySelector("#unity-container");
-            var canvas = document.querySelector("#unity-canvas");
-            var debugPanel = document.querySelector("#telegram-debug");
+            var container = document.getElementById('unity-container');
+            var canvas = document.getElementById('unity-canvas');
+            var debugPanel = document.getElementById('debug-info');
             
             var info = `
-                ���������: ${container.clientWidth} ? ${container.clientHeight}<br>
-                Canvas: ${canvas.clientWidth} ? ${canvas.clientHeight}<br>
-                ����: ${window.innerWidth} ? ${window.innerHeight}<br>
-                �������: ${currentScale.toFixed(2)}<br>
-                �����������: ${(container.clientWidth/container.clientHeight).toFixed(3)}<br>
-                DPR: ${window.devicePixelRatio}
+                <div>���������: ${container.clientWidth} ? ${container.clientHeight}</div>
+                <div>Canvas: ${canvas.clientWidth} ? ${canvas.clientHeight}</div>
+                <div>����: ${window.innerWidth} ? ${window.innerHeight}</div>
+                <div>�������: ?${currentScale.toFixed(2)}</div>
+                <div>�����������: ${(container.clientWidth/container.clientHeight).toFixed(3)}</div>
+                <div>DPR: ${window.devicePixelRatio}</div>
+                <div>Telegram: ${isTelegram ? '��' : '���'}</div>
             `;
-            
-            if (window.TelegramWebApp) {
-                info += `<br>Telegram: ${window.TelegramWebApp.viewportHeight}vh`;
-            }
             
             debugPanel.innerHTML = info;
         }
-
-        // ����� ��������������� ��� Telegram
-        function applySmartScaling() {
-            var container = document.querySelector("#unity-container");
+        
+        // ================= ��������������� =================
+        function applyTelegramScaling() {
+            if (!isTelegram) return false;
+            
+            var container = document.getElementById('unity-container');
             var containerWidth = container.clientWidth;
-            var containerHeight = container.clientHeight;
             
-            // ���������� ����������� ���������� ������
-            var minComfortWidth = 380;
-            var targetRatio = 9 / 16;
-            
-            // ������������ ��������� ������ ��� ����������� 9:16
-            var idealWidth = containerHeight * targetRatio;
-            
-            // ���� �������� ������ ������� ���������
-            if (containerWidth < minComfortWidth) {
-                // ������������ ������� ��� ���������� ����������� ���������� ������
-                currentScale = minComfortWidth / containerWidth;
+            // Telegram ��� 384px, ��� ����� ������� 500px
+            if (containerWidth < minGameWidth) {
+                // ������������ �������
+                currentScale = minGameWidth / containerWidth;
                 
-                // ������������ ������������ �������
-                if (currentScale > 1.5) currentScale = 1.5;
-                if (currentScale < 1.0) currentScale = 1.0;
+                // ������������ ������� (�������� 1.8x)
+                if (currentScale > 1.8) currentScale = 1.8;
+                if (currentScale < 1.1) currentScale = 1.1;
                 
                 // ��������� ���������������
                 container.style.transform = `scale(${currentScale})`;
                 container.style.transformOrigin = 'center center';
                 
-                // ������������ �������, ����� ������� ��������� �� ������
-                var scaledHeight = containerHeight * currentScale;
-                var heightDiff = (scaledHeight - containerHeight) / 2;
-                container.style.marginTop = `-${heightDiff}px`;
+                // ������������ ������� ��� �������������
+                var scaledWidth = containerWidth * currentScale;
+                var widthDiff = (scaledWidth - containerWidth) / 2;
+                container.style.marginLeft = `-${widthDiff}px`;
                 
+                console.log(`Telegram scaling: ${containerWidth}px > ${Math.round(scaledWidth)}px (?${currentScale.toFixed(2)})`);
                 return true;
-            } else {
-                // ���������� �������, ���� ������ ����������
-                if (currentScale !== 1.0) {
-                    currentScale = 1.0;
-                    container.style.transform = 'none';
-                    container.style.marginTop = '0';
-                }
-                return false;
             }
+            
+            // ���������� ������� ���� �� �����
+            if (currentScale !== 1.0) {
+                currentScale = 1.0;
+                container.style.transform = 'none';
+                container.style.marginLeft = '0';
+            }
+            return false;
         }
-
-        // �������� ������� ���������� ��������
+        
+        // ================= ���������� �������� CANVAS =================
         function updateCanvasSize() {
-            var canvas = document.querySelector("#unity-canvas");
-            var container = document.querySelector("#unity-container");
+            var canvas = document.getElementById('unity-canvas');
+            var container = document.getElementById('unity-container');
             
-            // ��������� ����� ���������������
-            var isScaled = applySmartScaling();
+            // ��������� ��������������� ��� Telegram
+            var isScaled = applyTelegramScaling();
             
-            // �������� ����������� ������� ���������� (��� � ������ ��������)
+            // �������� ����������� �������
             var containerWidth = container.clientWidth;
             var containerHeight = container.clientHeight;
             var targetRatio = 9 / 16;
             
-            // ������������ ������� � ������ ���������������
             var newWidth, newHeight;
             
             if (isScaled) {
-                // ���� ��������� ���������������, ���������� ����������� ������
-                newWidth = containerWidth;
-                newHeight = containerWidth / targetRatio;
+                // ���� �������������� ��� Telegram, ���������� ����������� �������
+                newWidth = containerWidth * currentScale;
+                newHeight = newWidth / targetRatio;
             } else {
-                // ����������� ������ ���������
+                // ����������� ������ � ����������� ���������
                 var currentRatio = containerWidth / containerHeight;
                 
                 if (currentRatio > targetRatio) {
+                    // ������� ������ - ������������ �� ������
                     newHeight = containerHeight;
                     newWidth = containerHeight * targetRatio;
                 } else {
+                    // ������� ���� - ������������ �� ������
                     newWidth = containerWidth;
                     newHeight = containerWidth / targetRatio;
                 }
             }
             
-            // ��������� ����� �������
-            canvas.style.width = newWidth + "px";
-            canvas.style.height = newHeight + "px";
+            // ������������� ������� Canvas
+            canvas.style.width = newWidth + 'px';
+            canvas.style.height = newHeight + 'px';
             
-            // ��������� ���������� ������� canvas
-            canvas.width = Math.floor(newWidth * window.devicePixelRatio);
-            canvas.height = Math.floor(newHeight * window.devicePixelRatio);
+            // ��������� ���������� ������� ��� WebGL
+            var dpr = window.devicePixelRatio || 1;
+            canvas.width = Math.floor(newWidth * dpr);
+            canvas.height = Math.floor(newHeight * dpr);
             
-            // ��������� �����������
+            // �����������
             updateDebugInfo();
             
             // ���������� Unity � ����� ��������
             if (unityInstance) {
                 try {
-                    unityInstance.SendMessage('CanvasScalerForWebGL', 'OnWebGLResize', 
+                    unityInstance.SendMessage('GameController', 'OnResolutionChanged', 
                         canvas.width + ',' + canvas.height);
                 } catch(e) {
-                    // ����������, ���� ���������� �� ��������
+                    // ���������� ���� ��� ������ ������
                 }
             }
         }
-
-        // �������������
-        document.addEventListener('DOMContentLoaded', function() {
-            var canvas = document.querySelector("#unity-canvas");
-            var container = document.querySelector("#unity-container");
+        
+        // ================= ����� �������� =================
+        function unityShowBanner(msg, type) {
+            var warningBanner = document.getElementById('unity-warning');
+            if (!warningBanner) return;
             
-            // ���������� ��� ����������
+            function updateVisibility() {
+                warningBanner.style.display = warningBanner.children.length ? 'block' : 'none';
+            }
+            
+            var div = document.createElement('div');
+            div.innerHTML = msg;
+            warningBanner.appendChild(div);
+            
+            if (type === 'error') {
+                div.style.cssText = 'background: #f44336; color: white; padding: 12px; border-radius: 6px; margin: 5px;';
+            } else if (type === 'warning') {
+                div.style.cssText = 'background: #ff9800; color: black; padding: 12px; border-radius: 6px; margin: 5px;';
+                setTimeout(() => {
+                    warningBanner.removeChild(div);
+                    updateVisibility();
+                }, 5000);
+            }
+            
+            updateVisibility();
+        }
+        
+        // ================= ������������� =================
+        document.addEventListener('DOMContentLoaded', function() {
+            var canvas = document.getElementById('unity-canvas');
+            var container = document.getElementById('unity-container');
+            
+            // ���������� ��������� ����������
             var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
             
             if (isMobile) {
-                container.className = "unity-mobile";
-                canvas.className = "unity-mobile";
+                container.className = 'unity-mobile';
+                canvas.className = 'unity-mobile';
                 
-                // �������������� viewport ��� ���������
+                // ����������� ��� ���������
                 var meta = document.createElement('meta');
                 meta.name = 'viewport';
-                meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
+                meta.content = 'width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
                 document.head.appendChild(meta);
             }
             
-            // ��������� ����������� (Ctrl+D ��� ���������/����������)
+            // ������� ������� ��� ������ (Ctrl+Shift+D)
             document.addEventListener('keydown', function(e) {
-                if (e.ctrlKey && e.key === 'd') {
-                    debugEnabled = !debugEnabled;
-                    var debugPanel = document.querySelector("#telegram-debug");
-                    debugPanel.style.display = debugEnabled ? 'block' : 'none';
-                    updateDebugInfo();
+                if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+                    toggleDebug();
                     e.preventDefault();
                 }
             });
             
             // ���������� ����� ��������
-            document.querySelector("#unity-loading-bar").style.display = "block";
+            document.getElementById('unity-loading-bar').style.display = 'block';
             
-            // ��������� Unity
-            if (typeof createUnityInstance !== "undefined") {
+            // �������� Unity
+            if (typeof createUnityInstance !== 'undefined') {
                 createUnityInstance(canvas, config, function(progress) {
-                    var progressBarFull = document.querySelector("#unity-progress-bar-full");
-                    if (progressBarFull) {
-                        progressBarFull.style.width = 100 * progress + "%";
+                    var progressBar = document.getElementById('unity-progress-bar-full');
+                    if (progressBar) {
+                        progressBar.style.width = (100 * progress) + '%';
                     }
                 }).then(function(instance) {
                     unityInstance = instance;
-                    document.querySelector("#unity-loading-bar").style.display = "none";
+                    
+                    // �������� ��������
+                    document.getElementById('unity-loading-bar').style.display = 'none';
+                    
+                    // ��������� ������ �������������� ������
+                    var fullscreenBtn = document.getElementById('unity-fullscreen-button');
+                    if (fullscreenBtn) {
+                        fullscreenBtn.onclick = function() {
+                            unityInstance.SetFullscreen(1);
+                        };
+                    }
                     
                     // ��������� ��������� ��������
                     updateCanvasSize();
                     
+                    // ��������� ��������� ��� Telegram
+                    if (isTelegram) {
+                        setTimeout(function() {
+                            updateCanvasSize();
+                            // ������������� ��������� ��� ��� ����� 500��
+                            setTimeout(updateCanvasSize, 500);
+                        }, 200);
+                    }
+                    
                     // ����������� ��������� ��������
                     var resizeTimer;
-                    window.addEventListener('resize', function() {
+                    function handleResize() {
                         clearTimeout(resizeTimer);
-                        resizeTimer = setTimeout(updateCanvasSize, 100);
-                    });
+                        resizeTimer = setTimeout(updateCanvasSize, 150);
+                    }
                     
+                    window.addEventListener('resize', handleResize);
                     window.addEventListener('orientationchange', function() {
                         setTimeout(updateCanvasSize, 300);
                     });
                     
-                }).catch(function(message) {
-                    alert("������ ��������: " + message);
-                    document.querySelector("#unity-loading-bar").style.display = "none";
+                }).catch(function(error) {
+                    console.error('Unity �������� ������:', error);
+                    unityShowBanner('������ �������� ����: ' + error, 'error');
+                    document.getElementById('unity-loading-bar').style.display = 'none';
                 });
             } else {
-                unityShowBanner("������ �������� Unity WebGL. ��������� ��������� ��������.", "error");
-                document.querySelector("#unity-loading-bar").style.display = "none";
+                unityShowBanner('������: Unity WebGL ��������� �� ������', 'error');
+                document.getElementById('unity-loading-bar').style.display = 'none';
             }
         });
+        
+        // ������������� �������� ����� ���� � URL ���� ��������
+        if (window.location.search.includes('debug=1')) {
+            setTimeout(toggleDebug, 1000);
+        }
     </script>
 </body>
 </html>
