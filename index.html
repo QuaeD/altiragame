@@ -48,6 +48,24 @@
     </style>
 </head>
 <body>
+	<script>
+		// ���������, ��� �� ������ Telegram WebApp
+		if (window.Telegram && Telegram.WebApp) {
+			const tg = Telegram.WebApp;
+			
+			// 1. ��������� ���� �� ���� ��������� �����
+			tg.expand();
+			
+			// 2. (�����������) ����������� ���������� ������ ���� � vh (������������ �������)
+			// ��������, 90% �� ������ ������ ����������
+			tg.setViewportHeight(0.9);
+			
+			// 3. ��������� �������� ���������� ��� ����� (��������� ��� ���)
+			tg.disableVerticalSwipes = true;
+			
+			console.log('Telegram WebApp initialized. Window expanded.');
+		}
+	</script>
     <!-- ��������� ��� ���� -->
     <div id="unity-container" class="unity-desktop">
         <canvas id="unity-canvas" width=1080 height=1920 tabindex="-1"></canvas>
